@@ -11,14 +11,14 @@ export const GET = async (
         const take = Number(limit);
         const skip = (Number(page) - 1) * take;
         const user = await currentUser();
-        const ratings = await prisma.rating.findMany({
+        const payments = await prisma.payment.findMany({
             where: { customerId: user?.id },
             skip,
             take,
         });
-        return NextResponse.json({ data: { ratings } }, { status: 200 });
+        return NextResponse.json({ data: { payments } }, { status: 200 });
     } catch (error) {
-        console.error("Error fetching ratings:", error);
+        console.error("Error fetching payments:", error);
         return NextResponse.json(
             { message: "Internal server error" },
             { status: 500 }

@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -15,7 +9,7 @@ datasource db {
 }
 
 model Customer {
-  id        String   @id @default(uuid())
+  id        String   @id
   firstName String
   lastName  String
   email     String   @unique
@@ -29,6 +23,8 @@ model Customer {
   couponUsages CouponUsage[]
   addresses    Address[]
   ratings      Rating[]
+  wishlists    Wishlist[]
+  payments     Payment[]
 
   @@map("customers")
 }
@@ -45,27 +41,25 @@ model CouponUsage {
 }
 
 model Order {
-  id             String      @id @default(uuid())
-  customerId     String
-  status         OrderStatus @default(PENDING)
-  totalAmount    Float
-  discountAmount Float       @default(0)
-  finalAmount    Float
-
-  couponId String?
-
+  id                String      @id @default(uuid())
+  customerId        String
+  status            OrderStatus @default(PENDING)
+  totalAmount       Float
+  discountAmount    Float       @default(0)
+  finalAmount       Float
+  couponId          String?
+  razorpayOrderId   String?     @unique
   shippingAddressId String
-
-  shippingCost Float @default(0)
-  taxAmount    Float @default(0)
-
-  items     Item[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  shippingCost      Float       @default(0)
+  taxAmount         Float       @default(0)
+  items             Item[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 
   customer        Customer @relation(fields: [customerId], references: [id])
   shippingAddress Address  @relation("ShippingAddress", fields: [shippingAddressId], references: [id])
   payment         Payment?
+  refund          Refund?
 
   @@map("orders")
 }
@@ -88,7 +82,7 @@ model Item {
 }
 
 model Address {
-  id         String  @id @default(uuid())
+  id         String   @id @default(uuid())
   customerId String
   fullName   String
   street     String
@@ -97,9 +91,8 @@ model Address {
   postalCode String
   country    String
   phone      String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   orders   Order[]  @relation("ShippingAddress")
   customer Customer @relation(fields: [customerId], references: [id])
@@ -110,6 +103,7 @@ model Address {
 model Payment {
   id                String        @id @default(uuid())
   orderId           String        @unique
+  customerId        String
   razorpayOrderId   String        @unique
   razorpayPaymentId String?       @unique
   razorpaySignature String?
@@ -117,24 +111,29 @@ model Payment {
   currency          String        @default("INR")
   method            PaymentMethod @default(UPI)
   status            PaymentStatus @default(PENDING)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  order  Order   @relation(fields: [orderId], references: [id])
-  refund Refund?
+  order    Order    @relation(fields: [orderId], references: [id])
+  refund   Refund?
+  customer Customer @relation(fields: [customerId], references: [id])
 
   @@map("payments")
 }
 
 model Refund {
-  id               String   @id @default(uuid())
-  paymentId        String   @unique
-  razorpayRefundId String
+  id               String       @id @default(uuid())
+  paymentId        String       @unique
+  orderId          String       @unique
+  razorpayRefundId String?      @unique
   amount           Float
+  status           RefundStatus @default(PENDING)
   reason           String?
-  createdAt        DateTime @default(now())
-  payment          Payment  @relation(fields: [paymentId], references: [id])
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  payment Payment @relation(fields: [paymentId], references: [id])
+  order   Order   @relation(fields: [orderId], references: [id])
 
   @@map("refunds")
 }
@@ -149,6 +148,7 @@ model Rating {
   updatedAt  DateTime @updatedAt
   customer   Customer @relation(fields: [customerId], references: [id])
 
+  @@unique([customerId, productId])
   @@map("ratings")
 }
 
@@ -164,6 +164,18 @@ model Cart {
   @@map("carts")
 }
 
+model Wishlist {
+  id         String   @id @default(uuid())
+  customerId String
+  productId  String
+  variantId  String?
+  createdAt  DateTime @default(now())
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  @@unique([customerId, productId, variantId])
+  @@map("wishlists")
+}
+
 enum OrderStatus {
   PENDING
   PROCESSING
@@ -172,6 +184,14 @@ enum OrderStatus {
   CANCELLED
   RETURNED
   REFUNDED
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSING
+  APPROVED
+  REJECTED
+  COMPLETED
 }
 
 enum PaymentStatus {

@@ -2,16 +2,27 @@ import prisma from "@/lib/prisma";
 import { currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-export const GET = async () => {
-    const user = await currentUser();
-    const orders = await prisma.order.findMany({
-        where: { customerId: user?.id },
-    });
-    if (!orders) {
+export const GET = async (
+    req: Request,
+    { searchParams }: { searchParams: Promise<{ page: string; limit: string }> }
+) => {
+    try {
+        const { page = 1, limit = 5 } = await searchParams;
+        const take = Number(limit);
+        const skip = (Number(page) - 1) * take;
+        const user = await currentUser();
+        const orders = await prisma.order.findMany({
+            where: { customerId: user?.id },
+            skip,
+            take,
+        });
+
+        return NextResponse.json({ data: { orders } }, { status: 200 });
+    } catch (error) {
+        console.error("Error fetching orders:", error);
         return NextResponse.json(
-            { message: "No orders found" },
-            { status: 404 }
+            { message: "Internal server error" },
+            { status: 500 }
         );
     }
-    return NextResponse.json({ data: { orders } }, { status: 200 });
 };

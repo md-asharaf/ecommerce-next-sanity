@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { client, ElasticProduct } from "@/lib/elasticSearch";
 const SEARCH_INDEX = process.env.ELASTICSEARCH_INDEX;
 export async function GET(request: NextRequest) {
@@ -10,15 +10,15 @@ export async function GET(request: NextRequest) {
             limit = 10,
         } = Object.fromEntries(searchParams.entries());
         if (!query) {
-            return new Response(
-                JSON.stringify({ error: "Search query is required" }),
+            return NextResponse.json(
+                { message: "Search query is required" },
                 { status: 400 }
             );
         }
 
         if (!SEARCH_INDEX) {
-            return new Response(
-                JSON.stringify({ error: "Search index not configured" }),
+            return NextResponse.json(
+                { message: "Search index not configured" },
                 { status: 500 }
             );
         }
@@ -91,11 +91,15 @@ export async function GET(request: NextRequest) {
             })) as ElasticProduct[],
         };
 
-        return new Response(JSON.stringify(response), { status: 200 });
+        return NextResponse.json(
+            {
+                data: { response },
+                message: "Search results retrieved successfully",
+            },
+            { status: 200 }
+        );
     } catch (error: any) {
         console.error("Search error:", error);
-        return new Response(JSON.stringify({ error: error.message }), {
-            status: 500,
-        });
+        return NextResponse.json({ message: error.message }, { status: 500 });
     }
 }

@@ -2,7 +2,7 @@ import CategoryShortcuts from "@/components/CategoryShorcuts";
 import HeroBanner from "@/components/HeroBanner";
 import ProductGrid from "@/components/ProductGrid";
 import PromoBanner from "@/components/PromoBanner";
-import { getAllFeauturedProducts } from "@/sanity/lib/product/getAllFeauturedProducts";
+import { getAllFeauturedProducts } from "@/sanity/lib/product/getAllFeaturedProducts";
 import { getAllProducts } from "@/sanity/lib/product/getAllProducts";
 
 export default async function Home() {
