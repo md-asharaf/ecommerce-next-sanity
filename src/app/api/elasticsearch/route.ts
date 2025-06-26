@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(
             {
-                data: { response },
+                data: { ...response },
                 message: "Search results retrieved successfully",
             },
             { status: 200 }

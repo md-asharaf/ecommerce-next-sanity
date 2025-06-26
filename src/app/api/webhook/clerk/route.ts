@@ -57,11 +57,6 @@ export async function POST(req: Request) {
                         customerId: id,
                     },
                 });
-                console.log(
-                    cart
-                        ? "Cart created successfully" + cart.id
-                        : "Failed to create cart"
-                );
             }
         } else if (event.type === "user.deleted") {
             const { id } = event.data;

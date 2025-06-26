@@ -2,19 +2,22 @@
 import { defineQuery } from "next-sanity";
 import { sanityFetch } from "../live";
 import { PaginationResult } from "@/hooks/use-pagination";
-import { Product } from "../../../../sanity.types";
+import { ExpandedProduct } from "@/types";
 
 export const getProductsByCategory = async (
     slug: string,
     page: number = 1,
     limit: number = 10
-): Promise<PaginationResult<Product>> => {
+): Promise<PaginationResult<ExpandedProduct>> => {
     const start = (page - 1) * limit;
     const end = start + limit;
 
     const PRODUCTS_BY_CATEGORY_QUERY = defineQuery(`
         {
-            "items": *[_type == "product" && references(*[_type == "category" && slug.current == $slug]._id)] | order(name asc)[$start...$end],
+            "items": *[_type == "product" && references(*[_type == "category" && slug.current == $slug]._id)] | order(name asc)[$start...$end]{
+                ...,
+                brand->
+            },
             "totalCount": count(*[_type == "product" && references(*[_type == "category" && slug.current == $slug]._id)])
         }
     `);

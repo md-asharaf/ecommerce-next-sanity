@@ -1,10 +1,10 @@
-import { Item } from "@/generated/prisma";
 import { getActiveSaleByCouponCode } from "@/sanity/lib/sale/getActiveSaleByCouponCode";
 import { currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { Sale } from "../../../../../sanity.types";
 import prisma from "@/lib/prisma";
-import { createRazorpayOrder } from "@/actions/createRazorpayOrder";
+import { createRazorpayOrder } from "@/lib/razorpay/createRazorpayOrder";
+import { Item } from "@prisma/client";
 
 export const POST = async (request: Request) => {
     try {
@@ -67,8 +67,8 @@ export const POST = async (request: Request) => {
             couponId = _id;
 
             const isExpired =
-                new Date() > new Date(expiryDate) ||
-                new Date() < new Date(startDate) ||
+                new Date() > new Date(expiryDate!) ||
+                new Date() < new Date(startDate!) ||
                 !isActive;
             if (isExpired) {
                 return NextResponse.json(
@@ -77,7 +77,7 @@ export const POST = async (request: Request) => {
                 );
             }
 
-            if (finalAmount < minOrderAmount) {
+            if (finalAmount < minOrderAmount!) {
                 return NextResponse.json(
                     { message: "Coupon code is not applicable on this order." },
                     { status: 400 }
@@ -86,11 +86,11 @@ export const POST = async (request: Request) => {
 
             finalAmount -=
                 discountType === "percentage"
-                    ? (discountValue * finalAmount) / 100
-                    : discountValue;
+                    ? (discountValue! * finalAmount) / 100
+                    : discountValue!;
             discountAmount +=
                 discountType === "percentage"
-                    ? (discountValue * totalAmount) / 100
+                    ? (discountValue! * totalAmount) / 100
                     : discountValue;
         }
 
@@ -146,7 +146,7 @@ export const POST = async (request: Request) => {
                 { status: 500 }
             );
         }
-
+        
         return NextResponse.json(
             {
                 message: "Order created successfully",

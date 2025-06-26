@@ -1,3 +1,4 @@
+import { createRazorpayRefund } from "@/lib/razorpay/createRazorpayRefund";
 import prisma from "@/lib/prisma";
 import { currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
@@ -48,10 +49,36 @@ export const POST = async (
         });
 
         // create refund request to razorpay
-        
+        const razorpayRefund = await createRazorpayRefund(
+            order?.payment?.id!,
+            reason
+        );
+        if (!razorpayRefund) {
+            return NextResponse.json(
+                { message: "Failed to create refund request" },
+                { status: 500 }
+            );
+        }
+        const status =
+            razorpayRefund.status === "processed"
+                ? "COMPLETED"
+                : razorpayRefund.status === "failed"
+                  ? "FAILED"
+                  : "APPROVED";
+        // Update the refund record with Razorpay details
+        await prisma.refund.update({
+            where: { id: refund.id },
+            data: {
+                razorpayRefundId: razorpayRefund.id,
+                status,
+            },
+        });
 
         return NextResponse.json(
-            { data: refund, message: "Refund request created successfully" },
+            {
+                data: { refundId: refund.id },
+                message: "Refund request created successfully",
+            },
             { status: 201 }
         );
     } catch (error) {

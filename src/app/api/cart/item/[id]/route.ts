@@ -26,7 +26,12 @@ export const DELETE = async (
             );
         }
         return NextResponse.json(
-            { message: "Item deleted successfully" },
+            {
+                message: "Item deleted successfully",
+                data: {
+                    item: deletedItem,
+                },
+            },
             { status: 200 }
         );
     } catch (error) {

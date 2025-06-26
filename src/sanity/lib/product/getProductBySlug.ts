@@ -5,8 +5,12 @@ import { sanityFetch } from "../live";
 export const getProductBySlug = async (slug: string) => {
     const PRODUCT_BY_SLUG_QUERY = defineQuery(`
         *[_type=="product" && slug.current == $slug]
-        | order(name asc)
-        `);
+        | order(name asc) {
+            ...,
+            category->,
+            brand->
+        }
+    `);
     try {
         const products = await sanityFetch({
             query: PRODUCT_BY_SLUG_QUERY,

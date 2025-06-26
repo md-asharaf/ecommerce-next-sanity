@@ -1,33 +1,44 @@
+// schemas/variant.ts
 import { defineField, defineType } from "sanity";
 
 export const variantType = defineType({
     name: "variant",
-    title: "Variants",
+    title: "Variant",
     type: "document",
+    preview: {
+        select: {
+            title: 'title',
+            // media: "images.0",
+            product: "product.title",
+            price: "price",
+        },
+        prepare({ title, product, price }) {
+            return {
+                title,
+                subtitle: `${product} - $${price}`,
+                // media
+            };
+        },
+    },
     fields: [
         defineField({
-            name: "productId",
-            title: "Product Id",
+            name: "product",
+            title: "Product",
             type: "reference",
             to: [{ type: "product" }],
+            validation: (Rule) => Rule.required(),
         }),
         defineField({
-            name: "color",
-            title: "Color",
+            name: "title",
+            title: "Variant Title",
             type: "string",
-            description: "Optional color variant",
+            validation: (Rule) => Rule.required(),
         }),
         defineField({
-            name: "size",
-            title: "Size",
+            name: "sku",
+            title: "SKU",
             type: "string",
-            description: "Optional size variant",
-        }),
-        defineField({
-            name: "stock",
-            title: "Stock",
-            type: "number",
-            validation: (Rule) => Rule.required().min(0),
+            validation: (Rule) => Rule.required(),
         }),
         defineField({
             name: "price",
@@ -36,26 +47,43 @@ export const variantType = defineType({
             validation: (Rule) => Rule.required().min(0),
         }),
         defineField({
-            name: "sku",
-            title: "SKU",
+            name: "discountedPrice",
+            title: "Discounted Price",
+            type: "number",
+            validation: (Rule) => Rule.min(0),
+        }),
+        defineField({
+            name: "stock",
+            title: "Stock",
+            type: "number",
+            validation: (Rule) => Rule.required().min(0).integer(),
+        }),
+        defineField({
+            name: "color",
+            title: "Color",
             type: "string",
-            validation: (Rule) => Rule.required(),
+        }),
+        defineField({
+            name: "size",
+            title: "Size",
+            type: "string",
+        }),
+        defineField({
+            name: "images",
+            title: "Variant Images",
+            type: "array",
+            of: [{ type: "url" }],
+            validation: (Rule) => Rule.required().min(1),
+        }),
+        defineField({
+            name: "material",
+            title: "Material",
+            type: "string",
+        }),
+        defineField({
+            name: "configuration",
+            title: "Configuration",
+            type: "string",
         }),
     ],
-    preview: {
-        select: {
-            title: "sku",
-            subtitle: "color",
-            media: "images.0",
-            price: "price",
-            stock: "stock",
-        },
-        prepare({ title, subtitle, media, price, stock }) {
-            return {
-                title,
-                subtitle: `${subtitle || "No color"} | $${price} | Stock: ${stock}`,
-                media,
-            };
-        },
-    },
 });

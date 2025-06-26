@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 export const POST = async (req: Request) => {
     try {
         const body = await req.json();
-        const { productId, variantId } = body;
+        const { productId } = body;
         if (!productId) {
             return NextResponse.json(
                 { message: "Missing required fields" },
@@ -18,8 +18,7 @@ export const POST = async (req: Request) => {
             data: {
                 customerId: user?.id!,
                 productId,
-                variantId,
-            },
+           },
         });
 
         return NextResponse.json({ data: { wishlist } }, { status: 201 });

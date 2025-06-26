@@ -1,10 +1,13 @@
-"use server"
+"use server";
 import { defineQuery } from "next-sanity";
 import { sanityFetch } from "../live";
 import { PaginationResult } from "@/hooks/use-pagination";
 import { Product } from "../../../../sanity.types";
 
-export const getAllProducts = async (page: number = 1, limit: number = 10):Promise<PaginationResult<Product>> => {
+export const getAllProducts = async (
+    page: number = 1,
+    limit: number = 10
+): Promise<PaginationResult<Product>> => {
     const start = (page - 1) * limit;
     const end = start + limit;
 

@@ -1,162 +1,192 @@
-import { TrolleyIcon } from "@sanity/icons";
-import { defineArrayMember, defineField, defineType } from "sanity";
+// /schemas/product.js
+import { defineType, defineField } from "sanity";
 
 export const productType = defineType({
     name: "product",
-    title: "Products",
+    title: "Product",
     type: "document",
-    icon: TrolleyIcon,
+    preview: {
+        select: {
+            title: "title",
+            category: "category.title",
+            price: "originalPrice",
+        },
+        prepare({ title, category, price }) {
+            return {
+                title,
+                subtitle: `${category} - $${price}`,
+                // media,
+            };
+        },
+    },
     fields: [
         defineField({
-            name: "name",
-            title: "Product Name",
+            name: "title",
+            title: "Title",
             type: "string",
-            validation: (Rule) => Rule.required().min(1).max(100),
+            validation: (Rule) => Rule.required(),
         }),
         defineField({
             name: "slug",
             title: "Slug",
             type: "slug",
+            options: { source: "title" },
             validation: (Rule) => Rule.required(),
-            options: {
-                source: "name",
-                maxLength: 96,
-            },
-        }),
-        defineField({
-            name: "images",
-            title: "Product Images",
-            type: "array",
-            of: [
-                defineArrayMember({
-                    type: "image",
-                    options: {
-                        hotspot: true,
-                    },
-                    fields: [
-                        defineField({
-                            name: "alt",
-                            title: "Alt Text",
-                            type: "string",
-                            validation: (Rule) => Rule.required(),
-                        }),
-                    ],
-                }),
-            ],
-            validation: (Rule) => Rule.required().min(1),
-        }),
-        defineField({
-            name: "videos",
-            title: "Product Videos",
-            type: "array",
-            of: [
-                defineArrayMember({
-                    type: "file",
-                    options: {
-                        accept: "video/*",
-                    },
-                    fields: [
-                        defineField({
-                            name: "title",
-                            title: "Video Title",
-                            type: "string",
-                        }),
-                    ],
-                }),
-            ],
         }),
         defineField({
             name: "description",
             title: "Description",
             type: "text",
-            rows: 4,
             validation: (Rule) => Rule.required(),
         }),
         defineField({
-            name: "price",
-            title: "Current Price",
-            type: "number",
-            validation: (Rule) => Rule.required().min(0),
-            description: "Current selling price of the product",
-        }),
-        defineField({
-            name: "originalPrice",
-            title: "Original Price",
-            type: "number",
-            validation: (Rule) => Rule.required().min(0),
-            description: "Original price before any discounts",
-        }),
-        defineField({
-            name: "featured",
-            title: "Featured Product",
-            type: "boolean",
-            initialValue: false,
-            description: "Toggle to feature this product on the homepage",
-        }),
-        defineField({
-            name: "categories",
-            title: "Categories",
+            name: "images",
+            title: "Images",
             type: "array",
-            of: [
-                defineArrayMember({
-                    type: "reference",
-                    to: [{ type: "category" }],
-                }),
-            ],
+            of: [{ type: "url" }],
             validation: (Rule) => Rule.required().min(1),
         }),
         defineField({
-            name: "variants",
-            title: "Product Variants",
+            name: "videos",
+            title: "Videos",
             type: "array",
-            of: [
-                defineArrayMember({
-                    type: "reference",
-                    to: [{ type: "variant" }],
-                }),
-            ],
+            of: [{ type: "url" }],
         }),
         defineField({
-            name: "stock",
-            title: "Stock Quantity",
-            type: "number",
-            validation: (Rule) => Rule.required().min(0),
-            description: "Available quantity in stock",
+            name: "isFeatured",
+            title: "Is Featured?",
+            type: "boolean",
+            initialValue: false,
+        }),
+        // Common
+        defineField({
+            name: "category",
+            title: "Category",
+            type: "reference",
+            to: [{ type: "category" }],
+            validation: (Rule) => Rule.required(),
         }),
         defineField({
             name: "brand",
             title: "Brand",
             type: "reference",
             to: [{ type: "brand" }],
-            validation: (Rule) => Rule.required(),
         }),
+        defineField({
+            name: "originalPrice",
+            title: "Original Price",
+            type: "number",
+            validation: (Rule) => Rule.required().min(0),
+        }),
+        defineField({
+            name: "discountedPrice",
+            title: "Discounted Price",
+            type: "number",
+            validation: (Rule) => Rule.min(0),
+        }),
+        defineField({
+            name: "stock",
+            title: "Stock",
+            type: "number",
+            initialValue: 0,
+        }),
+        defineField({
+            name: "highlights",
+            title: "Highlights",
+            type: "array",
+            of: [{ type: "string" }],
+        }),
+
+        // Flexible specs for automation
+        defineField({
+            name: "specifications",
+            title: "Specifications",
+            type: "array",
+            of: [
+                defineField({
+                    name: "spec",
+                    type: "object",
+                    fields: [
+                        {
+                            name: "label",
+                            type: "string",
+                            validation: (Rule) => Rule.required(),
+                        },
+                        {
+                            name: "value",
+                            type: "string",
+                            validation: (Rule) => Rule.required(),
+                        },
+                    ],
+                }),
+            ],
+        }),
+
+        defineField({ name: "material", title: "Material", type: "string" }),
+        defineField({
+            name: "careInstructions",
+            title: "Care Instructions",
+            type: "array",
+            of: [{ type: "string" }],
+        }),
+        defineField({
+            name: "dosAndDonts",
+            title: "Dos and Don'ts",
+            type: "array",
+            of: [
+                defineField({
+                    name: "rule",
+                    type: "object",
+                    fields: [
+                        {
+                            name: "type",
+                            type: "string",
+                            options: { list: ["Do", "Don't"] },
+                            validation: (Rule) => Rule.required(),
+                        },
+                        {
+                            name: "text",
+                            type: "string",
+                            validation: (Rule) => Rule.required(),
+                        },
+                    ],
+                }),
+            ],
+        }),
+
+        defineField({
+            name: "features",
+            title: "Features",
+            type: "array",
+            of: [{ type: "string" }],
+        }),
+        defineField({
+            name: "includedItems",
+            title: "Included Items",
+            type: "array",
+            of: [{ type: "string" }],
+        }),
+        defineField({
+            name: "usage",
+            title: "Usage Instructions",
+            type: "array",
+            of: [{ type: "string" }],
+        }),
+
         defineField({
             name: "tags",
             title: "Tags",
             type: "array",
-            of: [
-                defineArrayMember({
-                    type: "string",
-                }),
-            ],
-            options: {
-                layout: "tags",
-            },
+            of: [{ type: "string" }],
+            options: { layout: "tags" },
+        }),
+
+        // For variants (clothes, shoes, etc.)
+        defineField({
+            name: "hasVariants",
+            title: "Has Variants",
+            type: "boolean",
+            validation: (Rule) => Rule.required(),
         }),
     ],
-    preview: {
-        select: {
-            title: "name",
-            media: "images.0",
-            price: "price",
-            stock: "stock",
-        },
-        prepare({ title, media, price, stock }) {
-            return {
-                title,
-                media,
-                subtitle: `$${price} | Stock: ${stock}`,
-            };
-        },
-    },
 });

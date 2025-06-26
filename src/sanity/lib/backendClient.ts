@@ -6,6 +6,6 @@ export const backendClient = createClient({
     dataset,
     apiVersion,
     useCdn: true,
-    token: process.env.SANITY_API_TOKEN,
+    token: "skz8wVAqtvBOPqqdLYTcpfTuSkUzLSLkxqjJUE1aEGuope1xWFRuJabM2YCpx0rk0Vhi2YWRoKtAxeBngUch0gqpkRTMkFJKowpJpjkxXy69k9DSrzpmNfmdTmE3aaVQElBZu6rtT8rEMIRNcZe0P8Op9jA2db2OWiTJN6klmXzIiuoK57eV",
 });
 

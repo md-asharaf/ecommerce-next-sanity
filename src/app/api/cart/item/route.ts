@@ -1,37 +1,65 @@
 import prisma from "@/lib/prisma";
+import { currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 export const POST = async (req: Request) => {
     try {
+        const user = await currentUser();
+        const cart = await prisma.cart.findUnique({
+            where: {
+                customerId: user?.id,
+            },
+            include: {
+                items: true,
+            },
+        });
+
         const {
             productId,
             variantId,
-            quantity,
-            cartId,
+            quantity = 1,
             unitPrice,
             originalPrice,
         } = await req.json();
-
-        if (!productId || !quantity || !cartId || !unitPrice) {
+        if (!productId || !quantity || !unitPrice || !originalPrice) {
             return NextResponse.json(
                 {
-                    message:
-                        "Product ID, quantity , cartId and unitPrice are required",
+                    message: "Product ID, quantity and unitPrice are required",
                 },
                 { status: 400 }
             );
         }
+        const existingItem = cart?.items.find(
+            (item) =>
+                item.productId === productId &&
+                (!variantId || item.variantId === variantId)
+        );
+        let item;
+        if (existingItem) {
+            // Update the existing item quantity
+            item = await prisma.item.update({
+                where: {
+                    id: existingItem.id,
+                },
+                data: {
+                    quantity: existingItem.quantity + quantity,
+                    unitPrice,
+                    originalPrice,
+                },
+            });
+        } else {
+            item = await prisma.item.create({
+                data: {
+                    productId,
+                    variantId,
+                    quantity,
+                    unitPrice,
+                    originalPrice,
+                    cartId: cart?.id,
+                },
+            });
+        }
 
-        const item = await prisma.item.create({
-            data: {
-                productId,
-                variantId,
-                quantity,
-                unitPrice,
-                cartId,
-                originalPrice,
-            },
-        });
         return NextResponse.json(
             { message: "Item added to cart successfully", data: { item } },
             { status: 200 }

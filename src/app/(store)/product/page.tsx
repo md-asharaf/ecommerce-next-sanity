@@ -1,5 +1,4 @@
 import { getAllProducts } from "@/sanity/lib/product/getAllProducts";
-import ProductGrid from "@/components/ProductGrid";
 
 const AllProductsPage = async () => {
     const { items: products, totalCount, totalPages } = await getAllProducts(1, 10);

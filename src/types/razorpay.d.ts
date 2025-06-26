@@ -6,7 +6,7 @@ export interface RazorpayOptions {
     description?: string;
     image?: string;
     order_id?: string;
-    handler: (response: {
+    handler?: (response: {
         razorpay_payment_id: string;
         razorpay_order_id: string;
         razorpay_signature: string;
@@ -20,6 +20,7 @@ export interface RazorpayOptions {
     theme?: {
         color?: string;
     };
+    callback_url?: string;
 }
 export type LineItem = {
     type: string;

@@ -1,0 +1,172 @@
+import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
+import prisma from "@/lib/prisma";
+import { currentUser } from "@clerk/nextjs/server";
+import { OrderStatus } from "@prisma/client";
+
+const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+export async function POST(req: NextRequest) {
+    try {
+        if (!RAZORPAY_WEBHOOK_SECRET) {
+            console.error("RAZORPAY_WEBHOOK_SECRET is not defined.");
+            return NextResponse.json(
+                { message: "Server configuration error" },
+                { status: 500 }
+            );
+        }
+
+        const user = await currentUser();
+        let body: string;
+        let signature: string | null;
+        let event: any;
+
+        try {
+            body = await req.text();
+            signature = req.headers.get("x-razorpay-signature");
+
+            if (!signature) {
+                console.warn(
+                    "Webhook received without x-razorpay-signature header."
+                );
+                return NextResponse.json(
+                    { message: "Signature header missing" },
+                    { status: 400 }
+                );
+            }
+
+            const expectedSignature = crypto
+                .createHmac("sha256", RAZORPAY_WEBHOOK_SECRET)
+                .update(body)
+                .digest("hex");
+
+            if (signature !== expectedSignature) {
+                console.warn("Invalid Razorpay webhook signature.");
+                return NextResponse.json(
+                    { message: "Invalid signature" },
+                    { status: 400 }
+                );
+            }
+
+            event = JSON.parse(body);
+            console.log(
+                "Received Razorpay webhook event:",
+                event.event,
+                "for payment ID:",
+                event.payload?.payment?.entity?.id
+            );
+        } catch (error) {
+            console.error(
+                "Error parsing webhook body or verifying signature:",
+                error
+            );
+            return NextResponse.json(
+                { message: "Invalid request or processing error" },
+                { status: 400 }
+            );
+        }
+
+        if (
+            event.event === "payment.captured" ||
+            event.event === "payment.failed"
+        ) {
+            try {
+                // Safely extract data using optional chaining
+                const razorpayPaymentId = event.payload?.payment?.entity?.id;
+                const razorpayOrderId =
+                    event.payload?.payment?.entity?.order_id;
+                const amount = event.payload?.payment?.entity?.amount;
+                const currency = event.payload?.payment?.entity?.currency;
+                const method = event.payload?.payment?.entity?.method;
+                // Your internal order ID from notes
+                const internalOrderId =
+                    event.payload?.order?.entity?.notes?.orderId;
+
+                if (
+                    !razorpayPaymentId ||
+                    !razorpayOrderId ||
+                    amount === undefined ||
+                    !currency ||
+                    !internalOrderId
+                ) {
+                    console.error(
+                        "Missing essential data in webhook payload:",
+                        event
+                    );
+                    return NextResponse.json(
+                        { message: "Missing essential data in payload" },
+                        { status: 400 }
+                    );
+                }
+
+                const status =
+                    event.payload?.payment?.entity?.status === "captured"
+                        ? "COMPLETED"
+                        : event.payload?.payment?.entity?.status === "failed"
+                          ? "FAILED"
+                          : "APPROVED";
+
+                const paymentRecord = await prisma.payment.upsert({
+                    where: { razorpayPaymentId },
+                    update: {
+                        status,
+                    },
+                    create: {
+                        razorpayPaymentId: razorpayPaymentId,
+                        razorpayOrderId: razorpayOrderId,
+                        customerId: user?.id!,
+                        amount: amount,
+                        currency: currency,
+                        status,
+                        method: method,
+                        orderId: internalOrderId,
+                    },
+                });
+
+                console.log(
+                    `Payment record ${paymentRecord.id} ${paymentRecord.status} for order ${internalOrderId}`
+                );
+
+                // Update the associated Order status
+                await prisma.order.update({
+                    where: { id: internalOrderId },
+                    data: {
+                        status: status as OrderStatus,
+                    },
+                });
+
+                console.log(
+                    `Order ${internalOrderId} status updated to ${status}`
+                );
+            } catch (dbError) {
+                console.error(
+                    "Database operation failed for webhook event:",
+                    event.event,
+                    "Error:",
+                    dbError
+                );
+                return NextResponse.json(
+                    {
+                        message:
+                            "Internal server error during database operation",
+                    },
+                    { status: 500 }
+                );
+            }
+        } else {
+            // Log other events that you might not be processing currently
+            console.log(
+                "Received unhandled Razorpay webhook event:",
+                event.event
+            );
+        }
+
+        return NextResponse.json({ received: true }, { status: 200 });
+    } catch (error) {
+        console.error("Unexpected error in webhook handler:", error);
+        return NextResponse.json(
+            { message: "Internal server error" },
+            { status: 500 }
+        );
+    }
+}

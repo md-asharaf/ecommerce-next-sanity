@@ -1,13 +1,15 @@
 import prisma from "@/lib/prisma";
 import { currentUser } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export const GET = async (
-    req: Request,
-    { searchParams }: { searchParams: Promise<{ page: string; limit: string }> }
+    request: NextRequest,
 ) => {
     try {
-        const { page = 1, limit = 5 } = await searchParams;
+        const searchParams = request.nextUrl.searchParams;
+        const { page = 1, limit = 10 } = Object.fromEntries(
+            searchParams.entries()
+        );
         const take = Number(limit);
         const skip = (Number(page) - 1) * take;
         const user = await currentUser();
